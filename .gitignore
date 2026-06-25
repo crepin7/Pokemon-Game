@@ -1,0 +1,20 @@
+# Build
+/build/
+*.class
+
+# IDE
+.idea/
+*.iml
+.settings/
+.project
+.classpath
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Gradle
+.gradle/
+gradle/
+gradlew
+gradlew.bat
