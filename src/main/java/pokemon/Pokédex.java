@@ -1,6 +1,8 @@
 package pokemon;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -13,8 +15,8 @@ public class Pokédex {
     static {
         // --- Pokémon de départ ---
 
-        // Feu
-        Pokemon salameche = new Pokemon("Salamèche", Type.FEU, 5);
+        // Feu/Vol (Salamèche ligne évolutive -> Dracaufeu)
+        Pokemon salameche = new Pokemon("Salamèche", "Salamèche", Arrays.asList(Type.FEU, Type.VOL), 5, 55, 50, 45, 45);
         salameche.apprendreAttaque(new Attaque("Griffe", 40, 100, Type.NORMAL));
         salameche.apprendreAttaque(new Attaque("Flammèche", 40, 100, Type.FEU));
         pokemons.add(salameche);
@@ -37,11 +39,11 @@ public class Pokédex {
         pikachu.apprendreAttaque(new Attaque("Vive-Attaque", 40, 100, Type.NORMAL));
         pokemons.add(pikachu);
 
-        // Psy
+        // Eau (Psykokwak) - keeping single type Eau as specified
         Pokemon psykokwak = new Psykokwak();
         pokemons.add(psykokwak);
 
-        // Combat
+        // Feu
         Pokemon caninos = new Pokemon("Caninos", Type.FEU, 5);
         caninos.apprendreAttaque(new Attaque("Morsure", 60, 100, Type.TENEBRES));
         caninos.apprendreAttaque(new Attaque("Flammèche", 40, 100, Type.FEU));
@@ -73,8 +75,8 @@ public class Pokédex {
         smogo.apprendreAttaque(new Attaque("Gaz Toxik", 40, 90, Type.POISON));
         pokemons.add(smogo);
 
-        // Vol
-        Pokemon roucool = new Pokemon("Roucool", Type.VOL, 4);
+        // Normal/Vol (Roucool)
+        Pokemon roucool = new Pokemon("Roucool", Arrays.asList(Type.NORMAL, Type.VOL), 4);
         roucool.apprendreAttaque(new Attaque("Tornade", 40, 100, Type.VOL));
         roucool.apprendreAttaque(new Attaque("Vive-Attaque", 40, 100, Type.NORMAL));
         pokemons.add(roucool);
@@ -97,7 +99,7 @@ public class Pokédex {
         racaillou.apprendreAttaque(new Attaque("Charge", 40, 100, Type.NORMAL));
         pokemons.add(racaillou);
 
-        // Fée
+        // Fée (Mélofée)
         Pokemon melofee = new Pokemon("Mélofée", Type.FEE, 5);
         melofee.apprendreAttaque(new Attaque("Écras'Face", 40, 100, Type.NORMAL));
         melofee.apprendreAttaque(new Attaque("Voix Enjôleuse", 40, 100, Type.FEE));
@@ -125,7 +127,7 @@ public class Pokédex {
             throw new IndexOutOfBoundsException("Pokémon #" + index + " n'existe pas.");
         }
         Pokemon original = pokemons.get(index);
-        Pokemon copie = new Pokemon(original.getEspece(), original.getEspece(), original.getType(), original.getNiveau(),
+        Pokemon copie = new Pokemon(original.getEspece(), original.getEspece(), original.getTypes(), original.getNiveau(),
                 original.getHpMax(), original.getAttaque(), original.getDefense(), original.getVitesse());
         for (Attaque a : original.getAttaques()) {
             copie.apprendreAttaque(new Attaque(a.getNom(), a.getPuissance(), a.getPrecision(), a.getType(), a.getRatioAtk()));
@@ -142,7 +144,7 @@ public class Pokédex {
      */
     private static class Psykokwak extends Pokemon {
         Psykokwak() {
-            super("Psykokwak", Type.PSY, 5);
+            super("Psykokwak", Arrays.asList(Type.EAU, Type.PSY), 5);
             this.apprendreAttaque(new Attaque("Choc Mental", 50, 100, Type.PSY));
             this.apprendreAttaque(new Attaque("Pistolet à O", 40, 100, Type.EAU));
         }

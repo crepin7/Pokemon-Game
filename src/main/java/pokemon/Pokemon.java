@@ -5,12 +5,13 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Classe principale représentant un Pokémon avec ses statistiques, son type,
+ * Classe principale représentant un Pokémon avec ses statistiques, ses types,
  * et ses attaques. Supporte la progression par niveaux et XP.
+ * Supporte un ou deux types (règles officielles Pokémon).
  */
 public class Pokemon {
     private final String nom;
-    private final Type type;
+    private final List<Type> types;
     private int niveau;
     private int xp;
     private int xpProchainNiveau;
@@ -27,17 +28,20 @@ public class Pokemon {
     /**
      * @param espece  Nom de l'espèce (ex: "Dracaufeu")
      * @param nom     Nom donné au Pokémon (peut être personnalisé)
-     * @param type    Type du Pokémon
+     * @param types   Liste des 1 ou 2 types du Pokémon
      * @param niveau  Niveau initial
      * @param hpMax   HP max à ce niveau
      * @param attaque Stat d'attaque de base
      * @param defense Stat de défense de base
      * @param vitesse Stat de vitesse de base
      */
-    public Pokemon(String espece, String nom, Type type, int niveau, int hpMax, int attaque, int defense, int vitesse) {
+    public Pokemon(String espece, String nom, List<Type> types, int niveau, int hpMax, int attaque, int defense, int vitesse) {
+        if (types == null || types.isEmpty() || types.size() > 2) {
+            throw new IllegalArgumentException("Un Pokémon doit avoir 1 ou 2 types.");
+        }
         this.espece = espece;
         this.nom = nom;
-        this.type = type;
+        this.types = Collections.unmodifiableList(new ArrayList<>(types));
         this.niveau = niveau;
         this.xp = 0;
         this.xpProchainNiveau = calculerXpProchainNiveau(niveau);
@@ -52,8 +56,22 @@ public class Pokemon {
     /**
      * Constructeur simplifié pour niveau 1 avec stats par défaut.
      */
+    public Pokemon(String espece, List<Type> types, int niveau) {
+        this(espece, espece, types, niveau, 55, 50, 45, 45);
+    }
+
+    /**
+     * Constructeur backward-compatible avec un seul type.
+     */
+    public Pokemon(String espece, String nom, Type type, int niveau, int hpMax, int attaque, int defense, int vitesse) {
+        this(espece, nom, Collections.singletonList(type), niveau, hpMax, attaque, defense, vitesse);
+    }
+
+    /**
+     * Constructeur simplifié backward-compatible avec un seul type.
+     */
     public Pokemon(String espece, Type type, int niveau) {
-        this(espece, espece, type, niveau, 55, 50, 45, 45);
+        this(espece, espece, Collections.singletonList(type), niveau, 55, 50, 45, 45);
     }
 
     private int calculerXpProchainNiveau(int niv) {
@@ -64,7 +82,27 @@ public class Pokemon {
     // --- Getters ---
     public String getNom() { return nom; }
     public String getEspece() { return espece; }
-    public Type getType() { return type; }
+
+    /**
+     * Retourne le type primaire (backward-compatible).
+     */
+    public Type getType() { return types.get(0); }
+
+    /**
+     * Retourne la liste des types (immuable).
+     */
+    public List<Type> getTypes() { return types; }
+
+    /**
+     * Retourne le type primaire.
+     */
+    public Type getPrimaryType() { return types.get(0); }
+
+    /**
+     * Retourne le second type, ou null si le Pokémon n'a qu'un seul type.
+     */
+    public Type getSecondaryType() { return types.size() > 1 ? types.get(1) : null; }
+
     public int getNiveau() { return niveau; }
     public int getHpMax() { return hpMax; }
     public int getHp() { return hp; }
@@ -87,11 +125,16 @@ public class Pokemon {
     }
 
     /**
-     * Reçoit des dégâts en tenant compte de la défense.
-     * Formule simplifiée : degats = (attaque * multiplicateur_type) * (50 / (50 + defense))
+     * Reçoit des dégâts en tenant compte de la défense et des types du défenseur.
+     * Le multiplicateur est le produit des multiplicateurs contre chaque type du défenseur.
+     * (ex: x2 contre Feu + x2 contre Sol = x4 super efficace)
+     * Formule simplifiée : degats = (degatsBruts * multiplicateur_type) * (50 / (50 + defense))
      */
     public void recevoirDegats(int degatsBruts, Type typeAttaque) {
-        double multiplicateur = type.getMultiplier(typeAttaque);
+        double multiplicateur = 1.0;
+        for (Type t : types) {
+            multiplicateur *= typeAttaque.getMultiplier(t);
+        }
         double reduction = 50.0 / (50.0 + defense);
         int degats = (int) Math.max(1, degatsBruts * multiplicateur * reduction);
         hp = Math.max(0, hp - degats);
@@ -99,9 +142,13 @@ public class Pokemon {
 
     /**
      * Calcule les dégâts infligés par une attaque.
+     * Le multiplicateur est le produit des multiplicateurs contre chaque type de la cible.
      */
     public int calculerDegats(Attaque attaque, Pokemon cible) {
-        double multiplicateur = attaque.getType().getMultiplier(cible.getType());
+        double multiplicateur = 1.0;
+        for (Type t : cible.getTypes()) {
+            multiplicateur *= attaque.getType().getMultiplier(t);
+        }
         double base = attaque.getPuissance() * attaque.getRatioAtk() * multiplicateur;
         return Math.max(1, (int) base);
     }
@@ -140,9 +187,18 @@ public class Pokemon {
         hp = hpMax;
     }
 
+    private String typesToString() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < types.size(); i++) {
+            if (i > 0) sb.append("/");
+            sb.append(types.get(i).getDisplayName());
+        }
+        return sb.toString();
+    }
+
     @Override
     public String toString() {
-        return nom + " [" + espece + "] Niv." + niveau + " " + type.getDisplayName()
+        return nom + " [" + espece + "] Niv." + niveau + " " + typesToString()
                 + " HP=" + hp + "/" + hpMax + " ATK=" + attaque + " DEF=" + defense + " VIT=" + vitesse;
     }
 
@@ -151,7 +207,7 @@ public class Pokemon {
      */
     public String toDetailString() {
         StringBuilder sb = new StringBuilder();
-        sb.append(String.format("%-15s Niv.%-3d [%s]\n", nom, niveau, type.getDisplayName()));
+        sb.append(String.format("%-15s Niv.%-3d [%s]\n", nom, niveau, typesToString()));
         sb.append(String.format("  HP: %d/%d | ATK: %d | DEF: %d | VIT: %d\n", hp, hpMax, attaque, defense, vitesse));
         sb.append(String.format("  XP: %d/%d\n", xp, xpProchainNiveau));
         sb.append("  Attaques:\n");

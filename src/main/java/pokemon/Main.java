@@ -1,96 +1,82 @@
 package pokemon;
 
+import pokemon.ui.ConsoleRenderer;
+import pokemon.ui.DefaultConsoleRenderer;
+
 import java.util.List;
-import java.util.Scanner;
 
 /**
- * Interface console principale pour le jeu Pokémon.
- * Permet de choisir son Pokémon et de combattre.
+ * Point d'entrée (bootstrapping) du jeu Pokémon.
+ *
+ * Cette classe est fine : elle wire le moteur de combat pur ({@code Combat})
+ * à l'interface console ({@code ConsoleRenderer}), lit les choix de l'utilisateur
+ * et orchestre le déroulement des tours. Elle ne contient aucune règle métier.
  */
 public class Main {
 
-    private static final Scanner scanner = new Scanner(System.in);
-
     public static void main(String[] args) {
-        afficherBanniere();
-
-        System.out.println("\nChoisissez votre Pokémon :\n");
-        List<Pokemon> disponibles = Pokédex.getTous();
-        for (int i = 0; i < disponibles.size(); i++) {
-            Pokemon p = disponibles.get(i);
-            System.out.printf("  %2d. %-12s [%s] Niv.%d HP=%d ATK=%d DEF=%d VIT=%d\n",
-                    i + 1, p.getEspece(), p.getType().getDisplayName(),
-                    p.getNiveau(), p.getHpMax(), p.getAttaque(), p.getDefense(), p.getVitesse());
-        }
-
-        System.out.print("\nVotre choix (1-" + disponibles.size() + ") : ");
-        int choix = lireEntier(1, disponibles.size()) - 1;
-        Pokemon joueur = Pokédex.creerPokemon(choix);
-        System.out.println("\nVous avez choisi " + joueur.getEspece() + " !\n");
-
-        // Choisir un adversaire aléatoire différent
-        int idxAdversaire;
-        do {
-            idxAdversaire = (int) (Math.random() * disponibles.size());
-        } while (idxAdversaire == choix);
-        Pokemon adversaire = Pokédex.creerPokemon(idxAdversaire);
-        System.out.println("Votre adversaire : " + adversaire.getEspece() + " Niv." + adversaire.getNiveau() + "\n");
-
-        Combat combat = new Combat(joueur, adversaire);
-
-        // Boucle de combat
-        while (!combat.estTermine()) {
-            System.out.println("\n" + joueur.getEspece() + " HP: " + joueur.getHp() + "/" + joueur.getHpMax()
-                    + "  |  " + adversaire.getEspece() + " HP: " + adversaire.getHp() + "/" + adversaire.getHpMax());
-
-            // Afficher les attaques disponibles
-            System.out.println("\nVos attaques :");
-            List<Attaque> attaques = joueur.getAttaques();
-            for (int i = 0; i < attaques.size(); i++) {
-                System.out.printf("  %d. %s\n", i + 1, attaques.get(i).toString());
+        ConsoleRenderer ui = new DefaultConsoleRenderer();
+        try {
+            new Game(ui).run();
+        } finally {
+            if (ui instanceof DefaultConsoleRenderer) {
+                ((DefaultConsoleRenderer) ui).close();
             }
-
-            System.out.print("\nChoisissez une attaque (1-" + attaques.size() + ") : ");
-            int choixAttaque = lireEntier(1, attaques.size()) - 1;
-            Attaque attaqueJoueur = attaques.get(choixAttaque);
-
-            // L'IA choisit une attaque
-            Attaque attaqueIA = combat.choisirAttaqueIA();
-
-            // Exécuter le tour
-            String resultat = combat.executerTour(attaqueJoueur, attaqueIA);
-            System.out.println("\n" + resultat);
         }
-
-        // Fin de combat
-        System.out.println("\n--- Fin du combat ---\n");
-        if (!joueur.isDead()) {
-            System.out.println("🏆 Victoire ! " + joueur.getEspece() + " est toujours debout !");
-        } else {
-            System.out.println("💀 Défaite... " + joueur.getEspece() + " est K.O.");
-        }
-        System.out.println("\n" + joueur.toDetailString());
-
-        scanner.close();
     }
 
-    private static void afficherBanniere() {
-        System.out.println("╔══════════════════════════════════════════╗");
-        System.out.println("║          ⚡ POKÉMON - JEU JAVA ⚡        ║");
-        System.out.println("║         Combat tour par tour             ║");
-        System.out.println("╚══════════════════════════════════════════╝");
-    }
+    /**
+     * Orchestre une partie : sélection des Pokémon puis boucle de combat.
+     * Séparé de {@code main} pour rester testable avec un renderer quelconque.
+     */
+    static class Game {
+        private final ConsoleRenderer ui;
 
-    private static int lireEntier(int min, int max) {
-        while (true) {
-            try {
-                String ligne = scanner.nextLine().trim();
-                int val = Integer.parseInt(ligne);
-                if (val >= min && val <= max) return val;
-                System.out.print("Veuillez entrer un nombre entre " + min + " et " + max + " : ");
-            } catch (NumberFormatException e) {
-                System.out.print("Entrée invalide. Réessayez : ");
+        Game(ConsoleRenderer ui) {
+            this.ui = ui;
+        }
+
+        void run() {
+            ui.afficherBanniere();
+
+            // Sélection du Pokémon du joueur
+            List<Pokemon> disponibles = Pokédex.getTous();
+            ui.displayPokemonList(disponibles);
+            int choix = ui.promptChoice("\nVotre choix (1-" + disponibles.size() + ") : ", 1, disponibles.size()) - 1;
+            Pokemon joueur = Pokédex.creerPokemon(choix);
+            ui.displayMessage("\nVous avez choisi " + joueur.getEspece() + " !\n");
+
+            // Adversaire aléatoire différent du joueur
+            int idxAdversaire;
+            do {
+                idxAdversaire = (int) (Math.random() * disponibles.size());
+            } while (idxAdversaire == choix);
+            Pokemon adversaire = Pokédex.creerPokemon(idxAdversaire);
+            ui.displayMessage("Votre adversaire : " + adversaire.getEspece() + " Niv." + adversaire.getNiveau() + "\n");
+
+            Combat combat = new Combat(joueur, adversaire);
+
+            // Boucle de combat
+            while (!combat.estTermine()) {
+                ui.displayHp(joueur, adversaire);
+
+                List<Attaque> attaques = joueur.getAttaques();
+                ui.displayAttaques(attaques);
+
+                int choixAttaque = ui.promptChoice(
+                        "\nChoisissez une attaque (1-" + attaques.size() + ") : ", 1, attaques.size()) - 1;
+                Attaque attaqueJoueur = attaques.get(choixAttaque);
+
+                // L'IA choisit une attaque
+                Attaque attaqueIA = combat.choisirAttaqueIA();
+
+                // Exécution du tour par le moteur pur
+                TourResult resultat = combat.executerTour(attaqueJoueur, attaqueIA);
+                ui.displayCombatTurn(resultat);
             }
+
+            // Fin de combat
+            ui.displayEndScreen(joueur, adversaire);
         }
     }
 }
