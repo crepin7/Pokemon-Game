@@ -21,14 +21,26 @@ Java 17+ (aucun autre outil nécessaire).
 
 ## Compiler et lancer
 
+### Sans Gradle (recommandé — zéro dépendance externe)
+
 ```bash
-# Méthode 1 — script fourni (recommandé)
+# Via le script (compile si nécessaire, puis lance)
 ./run.sh
 
-# Méthode 2 — manuellement
+# Ou manuellement
 mkdir -p out
 javac -d out src/main/java/pokemon/*.java src/main/java/pokemon/ui/*.java
 java -cp out pokemon.Main
+```
+
+### Avec Gradle (pour les collaborateurs)
+
+Un wrapper Gradle 8.12 est fourni dans le dépôt (`gradlew` + `gradle/wrapper/`) :
+
+```bash
+./gradlew build     # compiler + tests
+./gradlew run       # compiler + lancer
+./gradlew test      # seulement les tests
 ```
 
 ## Lancer les tests (optionnel)

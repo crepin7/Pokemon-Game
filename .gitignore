@@ -1,9 +1,16 @@
-# Dependency jars (JUnit, etc.)
-lib/
+# Dependency jars (JUnit standalone pour tests sans Gradle)
+# Le wrapper gradle (gradlew, gradlew.bat, gradle/wrapper/) est commit
+# pour permettre le build hors-ligne. Si vous préférez le régénérer,
+# décommentez les lignes ci-dessous :
+# gradlew
+# gradlew.bat
+# gradle/wrapper/gradle-wrapper.jar
+# gradle/wrapper/gradle-wrapper.properties
 
 # Build outputs
 out/
 out-test/
+build/
 bin/
 *.class
 
