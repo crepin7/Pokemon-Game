@@ -1,5 +1,10 @@
-# Build
+# binaires téléchargés
+lib/
+
+# Build outputs
 /build/
+out/
+bin/
 *.class
 
 # IDE
@@ -15,6 +20,10 @@ Thumbs.db
 
 # Gradle
 .gradle/
-gradle/
+gradle/wrapper/gradle-wrapper.jar
+ !gradle-wrapper.properties
 gradlew
 gradlew.bat
+
+# Logs
+*.log
